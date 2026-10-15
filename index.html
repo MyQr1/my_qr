@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IOSH Certificate Verification - Smart Verify+</title>
+  <style>
+    /* ==========================================================================
+       RESET & BASE STYLES (Pure White Background)
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #ffffff;
+      color: #212529;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0;
+    }
+
+    /* ==========================================================================
+       MAIN CONTENT CONTAINER
+       ========================================================================== */
+    .verification-page-container {
+      width: 100%;
+      max-width: 820px;
+      background-color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      margin: 0 auto;
+    }
+
+    /* ==========================================================================
+       HEADER BRANDING (Logos)
+       ========================================================================== */
+    .header-branding {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      background-color: #ffffff;
+      border-bottom: 1px solid #e9ecef;
+    }
+
+    .brand-left, .brand-right {
+      display: flex;
+      align-items: center;
+    }
+
+    .brand-left img,
+    .brand-right img {
+      height: 44px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+
+    /* Graceful inline SVG fallback if image files are not yet in folder */
+    .fallback-logo {
+      display: flex;
+      align-items: center;
+      height: 44px;
+    }
+
+    /* ==========================================================================
+       GREEN VERIFICATION BANNER
+       ========================================================================== */
+    .verification-banner {
+      background-color: #176f33; /* Dark green matching reference */
+      color: #ffffff;
+      padding: 14px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      line-height: 1.45;
+      font-size: 14px;
+      border-bottom: 1px solid #115326;
+    }
+
+    .banner-icon {
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .banner-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: #ffffff;
+      display: block;
+    }
+
+    .banner-text {
+      flex: 1;
+      font-weight: 500;
+      letter-spacing: -0.1px;
+      word-break: break-word;
+    }
+
+    /* ==========================================================================
+       DOCUMENT VIEWER TOOLBAR
+       ========================================================================== */
+    .viewer-toolbar {
+      background-color: #f1f3f4;
+      border-top: 1px solid #dadce0;
+      border-bottom: 1px solid #dadce0;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 14px;
+      user-select: none;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .toolbar-btn {
+      background: transparent;
+      border: none;
+      outline: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: #444746;
+      transition: background-color 0.15s ease;
+    }
+
+    .toolbar-btn:hover {
+      background-color: rgba(0, 0, 0, 0.08);
+    }
+
+    .toolbar-btn:active {
+      background-color: rgba(0, 0, 0, 0.16);
+    }
+
+    .toolbar-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .page-indicator {
+      font-size: 13px;
+      color: #444746;
+      font-weight: 500;
+      margin: 0 4px;
+    }
+
+    .zoom-text {
+      font-size: 13px;
+      color: #444746;
+      min-width: 46px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    /* ==========================================================================
+       DOCUMENT VIEWER STAGE & CANVAS
+       ========================================================================== */
+    .viewer-stage {
+      background-color: #525659; /* Standard document canvas background */
+      padding: 24px 16px 40px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow: auto;
+      min-height: 580px;
+      position: relative;
+    }
+
+    .certificate-frame {
+      background-color: #ffffff;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      display: inline-block;
+      transition: transform 0.12s ease-out;
+      transform-origin: top center;
+      max-width: 100%;
+    }
+
+    /* Exact Editable Image element */
+    #certificateImage {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-width: 680px;
+      object-fit: contain;
+      user-select: none;
+    }
+
+    @media (max-width: 600px) {
+      .header-branding {
+        padding: 10px 14px;
+      }
+      .brand-left img, .brand-right img, .fallback-logo {
+        height: 34px;
+      }
+      .verification-banner {
+        padding: 12px 14px;
+        font-size: 13px;
+      }
+      .viewer-stage {
+        padding: 12px 8px 24px;
+        min-height: 420px;
+      }
+      .viewer-toolbar {
+        padding: 0 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="verification-page-container">
+
+    <!-- =======================================================================
+         1. EXACT HEADER BRANDING LOGOS
+         ======================================================================= -->
+    <header class="header-branding">
+      <!-- Top-Left: iosh Training Logo -->
+      <!-- Place 'iosh-logo.png' in the same folder, or edit the filename below -->
+      <div class="brand-left">
+        <img src="iosh_training_logo.png" 
+             alt="iosh Training" 
+             onerror="this.style.display='none'; document.getElementById('iosh-svg-fallback').style.display='flex';">
+        <div id="iosh-svg-fallback" class="fallback-logo" style="display:none;">
+          <svg viewBox="0 0 170 50" height="42">
+            <path d="M26 8 C 12 16, 12 34, 26 42 C 22 35, 22 15, 26 8 Z" fill="#0099cc"/>
+            <path d="M52 8 C 66 16, 66 34, 52 42 C 56 35, 56 15, 52 8 Z" fill="#0099cc"/>
+            <circle cx="32" cy="18" r="2.5" fill="#31194d"/>
+            <rect x="30" y="23" width="4" height="15" fill="#31194d"/>
+            <ellipse cx="39" cy="30" rx="3.5" ry="5.5" fill="none" stroke="#31194d" stroke-width="3"/>
+            <path d="M45 25 C43 23 46 23 47 25 C48 27 44 29 46 34 C47 37 44 38 44 38" fill="none" stroke="#31194d" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M50 14 v24 M50 27 h4 c2 0 3 1.5 3 4 v7" fill="none" stroke="#31194d" stroke-width="2.6" stroke-linecap="round"/>
+            <text x="64" y="32" font-family="'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="600" fill="#2d174d">Training</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Top-Right: Smart Verify+ Logo -->
+      <!-- Place 'smart-verify-logo.png' in the same folder, or edit the filename below -->
+      <div class="brand-right">
+        <img src="smart_verify_plus_logo.png" 
+             alt="Smart Verify+" 
+             onerror="this.style.display='none'; document.getElementById('verify-svg-fallback').style.display='flex';">
+        <div id="verify-svg-fallback" class="fallback-logo" style="display:none;">
+          <svg viewBox="0 0 175 50" height="42">
+            <polygon points="12,5 34,5 42,13 42,42 12,42" fill="#ffffff" stroke="#1d63b8" stroke-width="3.5" stroke-linejoin="round"/>
+            <line x1="18" y1="16" x2="28" y2="16" stroke="#1d63b8" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="18" y1="22" x2="35" y2="22" stroke="#1d63b8" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="18" y1="28" x2="33" y2="28" stroke="#1d63b8" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="16" cy="36" r="6" fill="#1d63b8"/>
+            <rect x="14" y="34" width="4" height="4" fill="#ffffff"/>
+            <text x="48" y="21" font-family="'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700" fill="#1d63b8">Smart</text>
+            <text x="48" y="40" font-family="'Segoe UI', Roboto, sans-serif" font-size="19" font-weight="700" fill="#d93844">Verify<tspan fill="#6c757d" font-weight="400">+</tspan></text>
+          </svg>
+        </div>
+      </div>
+    </header>
+
+    <!-- =======================================================================
+         2. GREEN VERIFICATION BANNER
+         Edit the verification text below if needed
+         ======================================================================= -->
+    <section class="verification-banner" aria-live="polite">
+      <div class="banner-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+        </svg>
+      </div>
+      <div class="banner-text">
+        This document is valid and was issued by IOSH (Institution of Occupational Safety and Health) to Ayman Ismail Abd Elmonem Abd Elgawad on 03 June 2024
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         3. DOCUMENT VIEWER TOOLBAR
+         ======================================================================= -->
+    <nav class="viewer-toolbar" aria-label="Document viewer controls">
+      <div class="toolbar-group">
+        <!-- Sidebar / Thumbnails toggle -->
+        <button class="toolbar-btn" id="btnSidebar" title="Toggle Sidebar" aria-label="Toggle Sidebar">
+          <svg viewBox="0 0 24 24">
+            <path d="M3 3h18v18H3V3zm2 2v14h4V5H5zm6 0v14h8V5h-8z"/>
+          </svg>
+        </button>
+        <span class="page-indicator">1 of 1</span>
+      </div>
+
+      <div class="toolbar-group">
+        <!-- Zoom Out -->
+        <button class="toolbar-btn" id="btnZoomOut" title="Zoom Out" aria-label="Zoom Out">
+          <svg viewBox="0 0 24 24">
+            <path d="M19 13H5v-2h14v2z"/>
+          </svg>
+        </button>
+        <span class="zoom-text" id="zoomLevel">100%</span>
+        <!-- Zoom In -->
+        <button class="toolbar-btn" id="btnZoomIn" title="Zoom In" aria-label="Zoom In">
+          <svg viewBox="0 0 24 24">
+            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="toolbar-group">
+        <!-- Hand Tool -->
+        <button class="toolbar-btn" id="btnHand" title="Hand Tool" aria-label="Hand Tool">
+          <svg viewBox="0 0 24 24">
+            <path d="M21 7c-.55 0-1 .45-1 1v4.5l-1.07-.64a1.98 1.98 0 0 0-2.82.89L15 15.2V3.5c0-.83-.67-1.5-1.5-1.5S12 2.67 12 3.5v9.2l-.76-.54a1.98 1.98 0 0 0-2.82.59l-.91 1.48 4.49 5.86c.64.83 1.63 1.41 2.7 1.41h4.8c1.93 0 3.5-1.57 3.5-3.5V8c0-.55-.45-1-1-1z"/>
+          </svg>
+        </button>
+        <!-- More / Settings -->
+        <button class="toolbar-btn" id="btnSettings" title="More options" aria-label="More options">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+          </svg>
+        </button>
+      </div>
+    </nav>
+
+    <!-- =======================================================================
+         4. DOCUMENT VIEWER CANVAS (Centered certificate image)
+         ======================================================================= -->
+    <main class="viewer-stage" id="viewerStage">
+      <div class="certificate-frame" id="certificateFrame">
+        <!-- ========================================================================= -->
+        <!-- CERTIFICATE IMAGE: Replace 'certificate.jpg' with your certificate file   -->
+        <!-- ========================================================================= -->
+        <img id="certificateImage" src="1.png" alt="Certificate document">
+      </div>
+    </main>
+
+  </div>
+
+  <!-- =========================================================================
+       5. JAVASCRIPT CONTROLS (Zoom, Reset, and Pan)
+       ========================================================================= -->
+  <script>
+    (function () {
+      const btnZoomIn = document.getElementById('btnZoomIn');
+      const btnZoomOut = document.getElementById('btnZoomOut');
+      const zoomLevelLabel = document.getElementById('zoomLevel');
+      const certFrame = document.getElementById('certificateFrame');
+      const viewerStage = document.getElementById('viewerStage');
+      const btnHand = document.getElementById('btnHand');
+
+      let currentZoom = 1.0;
+      const minZoom = 0.5;
+      const maxZoom = 2.5;
+      const step = 0.15;
+
+      function updateZoom() {
+        certFrame.style.transform = `scale(${currentZoom})`;
+        zoomLevelLabel.textContent = `${Math.round(currentZoom * 100)}%`;
+      }
+
+      btnZoomIn.addEventListener('click', () => {
+        if (currentZoom < maxZoom) {
+          currentZoom = Math.min(maxZoom, currentZoom + step);
+          updateZoom();
+        }
+      });
+
+      btnZoomOut.addEventListener('click', () => {
+        if (currentZoom > minZoom) {
+          currentZoom = Math.max(minZoom, currentZoom - step);
+          updateZoom();
+        }
+      });
+
+      // Double-click to toggle zoom between 100% and 150%
+      certFrame.addEventListener('dblclick', () => {
+        currentZoom = currentZoom === 1.0 ? 1.5 : 1.0;
+        updateZoom();
+      });
+
+      // Hand tool toggling & drag navigation
+      let isHandActive = false;
+      let isDragging = false;
+      let startX, startY, scrollLeft, scrollTop;
+
+      btnHand.addEventListener('click', () => {
+        isHandActive = !isHandActive;
+        btnHand.style.backgroundColor = isHandActive ? 'rgba(0,0,0,0.18)' : '';
+        viewerStage.style.cursor = isHandActive ? 'grab' : 'default';
+      });
+
+      viewerStage.addEventListener('mousedown', (e) => {
+        if (!isHandActive) return;
+        isDragging = true;
+        viewerStage.style.cursor = 'grabbing';
+        startX = e.pageX - viewerStage.offsetLeft;
+        startY = e.pageY - viewerStage.offsetTop;
+        scrollLeft = viewerStage.scrollLeft;
+        scrollTop = viewerStage.scrollTop;
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (isDragging) {
+          isDragging = false;
+          if (isHandActive) viewerStage.style.cursor = 'grab';
+        }
+      });
+
+      viewerStage.addEventListener('mousemove', (e) => {
+        if (!isDragging || !isHandActive) return;
+        e.preventDefault();
+        const x = e.pageX - viewerStage.offsetLeft;
+        const y = e.pageY - viewerStage.offsetTop;
+        viewerStage.scrollLeft = scrollLeft - (x - startX) * 1.5;
+        viewerStage.scrollTop = scrollTop - (y - startY) * 1.5;
+      });
+    })();
+  </script>
+</body>
+</html>
